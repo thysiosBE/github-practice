@@ -39,6 +39,8 @@
   button.op:hover, button.eq:hover { filter: brightness(1.1); }
   button.fn { color: var(--op); font-weight: 600; }
   button.zero { grid-column: span 2; }
+  button.green { background: #16a34a; color: #ffffff; }
+  button.green:hover { background: #15803d; }
   footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 14px; }
 </style>
 </head>
@@ -57,7 +59,7 @@
       <button class="op" data-op="*">×</button>
       <button data-num="4">4</button><button data-num="5">5</button><button data-num="6">6</button>
       <button class="op" data-op="-">−</button>
-      <button data-num="1">1</button><button data-num="2">2</button><button data-num="3">3</button>
+      <button class="green" data-num="1">1</button><button data-num="2">2</button><button data-num="3">3</button>
       <button class="op" data-op="+">+</button>
       <button class="zero" data-num="0">0</button>
       <button data-action="dot">.</button>
