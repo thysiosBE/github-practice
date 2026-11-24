@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculator</title>
+<style>
+  :root {
+    --bg: #f3f4f6; --card: #ffffff; --text: #111827; --muted: #6b7280;
+    --key: #f3f4f6; --key-hover: #e5e7eb; --op: #2563eb; --op-text: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --muted: #94a3b8;
+      --key: #334155; --key-hover: #475569; --op: #3b82f6;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 16px;
+  }
+  .calc {
+    width: 100%; max-width: 340px; background: var(--card);
+    border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.12);
+  }
+  .display { text-align: right; padding: 8px 6px 16px; min-height: 96px; }
+  .history { color: var(--muted); font-size: 15px; min-height: 20px; overflow-wrap: anywhere; }
+  .value { font-size: 44px; font-weight: 600; overflow-wrap: anywhere; line-height: 1.15; }
+  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  button {
+    font: inherit; font-size: 22px; border: 0; border-radius: 14px; padding: 18px 0;
+    background: var(--key); color: var(--text); cursor: pointer; transition: background .1s;
+  }
+  button:hover { background: var(--key-hover); }
+  button:active { transform: scale(.97); }
+  button.op, button.eq { background: var(--op); color: var(--op-text); }
+  button.op:hover, button.eq:hover { filter: brightness(1.1); }
+  button.fn { color: var(--op); font-weight: 600; }
+  button.zero { grid-column: span 2; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <main class="calc">
+    <div class="display" aria-live="polite">
+      <div class="history" id="history"></div>
+      <div class="value" id="value">0</div>
+    </div>
+    <div class="keys">
+      <button class="fn" data-action="clear">C</button>
+      <button class="fn" data-action="sign">±</button>
+      <button class="fn" data-action="percent">%</button>
+      <button class="op" data-op="/">÷</button>
+      <button data-num="7">7</button><button data-num="8">8</button><button data-num="9">9</button>
+      <button class="op" data-op="*">×</button>
+      <button data-num="4">4</button><button data-num="5">5</button><button data-num="6">6</button>
+      <button class="op" data-op="-">−</button>
+      <button data-num="1">1</button><button data-num="2">2</button><button data-num="3">3</button>
+      <button class="op" data-op="+">+</button>
+      <button class="zero" data-num="0">0</button>
+      <button data-action="dot">.</button>
+      <button class="eq" data-action="equals">=</button>
+    </div>
+    <footer>Tip: you can type on your keyboard too.</footer>
+  </main>
+
+<script>
+  const valueEl = document.getElementById('value');
+  const historyEl = document.getElementById('history');
+  const symbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+
+  let current = '0';      // number being typed
+  let previous = null;    // stored number
+  let operator = null;    // pending operator
+  let fresh = false;      // next digit starts a new number
+
+  function format(n) {
+    if (!isFinite(n)) return 'Error';
+    return String(parseFloat(n.toPrecision(12)));
+  }
+  function render() {
+    valueEl.textContent = current;
+    historyEl.textContent = operator ? `${previous} ${symbols[operator]}` : '';
+  }
+  function compute(a, b, op) {
+    a = parseFloat(a); b = parseFloat(b);
+    if (op === '+') return a + b;
+    if (op === '-') return a - b;
+    if (op === '*') return a * b;
+    if (op === '/') return b === 0 ? NaN : a / b;
+  }
+  function inputDigit(d) {
+    if (current === 'Error' || fresh) { current = '0'; fresh = false; }
+    current = current === '0' ? d : current + d;
+  }
+  function inputDot() {
+    if (current === 'Error' || fresh) { current = '0'; fresh = false; }
+    if (!current.includes('.')) current += '.';
+  }
+  function chooseOp(op) {
+    if (current === 'Error') return;
+    if (operator && !fresh) current = format(compute(previous, current, operator));
+    previous = current; operator = op; fresh = true;
+  }
+  function equals() {
+    if (!operator || current === 'Error') return;
+    const expr = `${previous} ${symbols[operator]} ${current} =`;
+    current = format(compute(previous, current, operator));
+    operator = null; previous = null; fresh = true;
+    render(); historyEl.textContent = expr;
+  }
+  function action(a) {
+    if (a === 'clear') { current = '0'; previous = null; operator = null; fresh = false; }
+    if (a === 'sign' && current !== 'Error' && current !== '0') current = current.startsWith('-') ? current.slice(1) : '-' + current;
+    if (a === 'percent' && current !== 'Error') current = format(parseFloat(current) / 100);
+    if (a === 'dot') inputDot();
+    if (a === 'equals') return equals();
+    render();
+  }
+
+  document.querySelector('.keys').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.num) { inputDigit(b.dataset.num); render(); }
+    else if (b.dataset.op) { chooseOp(b.dataset.op); render(); }
+    else action(b.dataset.action);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (/^[0-9]$/.test(e.key)) { inputDigit(e.key); render(); }
+    else if (['+', '-', '*', '/'].includes(e.key)) { e.preventDefault(); chooseOp(e.key); render(); }
+    else if (e.key === '.' || e.key === ',') action('dot');
+    else if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); action('equals'); }
+    else if (e.key === 'Escape') action('clear');
+    else if (e.key === 'Backspace') {
+      if (!fresh && current !== 'Error') { current = current.length > 1 ? current.slice(0, -1) : '0'; render(); }
+    }
+    else if (e.key === '%') action('percent');
+  });
+</script>
+</body>
+</html>
